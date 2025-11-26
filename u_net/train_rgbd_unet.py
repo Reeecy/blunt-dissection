@@ -96,9 +96,17 @@ class RGBDMaskDataset(Dataset):
         # Stack RGBD
         x = np.concatenate([rgb, depth], axis=-1)  # H,W,4
 
-        # Mask (0..3)
+        # Mask - remap from original values to class indices
         mask_path = os.path.join(self.mask_dir, fname)
-        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE).astype(np.int64)
+        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+
+        # Remap mask values: 0->0 (background), 29->1 (flesh), 76->2 (dissection), 149->3 (tool)
+        mask_remapped = np.zeros_like(mask, dtype=np.int64)
+        mask_remapped[mask == 0] = 0
+        mask_remapped[mask == 29] = 1
+        mask_remapped[mask == 76] = 2
+        mask_remapped[mask == 149] = 3
+        mask = mask_remapped
 
         # Albumentations expects dict with 'image' and 'mask'
         augmented = self.transform(image=x, mask=mask)
